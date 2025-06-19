@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0 rounded-lg">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h3 class="mb-0"><i class="fas fa-user-plus me-2"></i>Create Account</h3>
+                </div>
+                <div class="card-body p-4">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            <div class="mb-3">
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                    <form method="POST" action="{{ url_for('register') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="gender" class="form-label">Gender</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-venus-mars"></i></span>
+                                <select class="form-select" id="gender" name="gender" required>
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                                <button type="button" class="btn btn-outline-secondary password-toggle" onclick="togglePassword('password', this)"><i class="fas fa-eye"></i></button>
+                            </div>
+                            <div class="password-requirements mt-2">
+                                <div class="password-strength-container mb-2">
+                                    <div class="password-strength-label">Password Strength:</div>
+                                    <div class="password-strength-bar">
+                                        <div class="password-strength"></div>
+                                    </div>
+                                </div>
+                                <ul class="password-requirements-list list-unstyled">
+                                    <li data-requirement="At least 8 characters">At least 8 characters</li>
+                                    <li data-requirement="One uppercase letter">One uppercase letter</li>
+                                    <li data-requirement="One lowercase letter">One lowercase letter</li>
+                                    <li data-requirement="One number">One number</li>
+                                    <li data-requirement="One special character (!@#$%^&*)">One special character (!@#$%^&*)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Confirm Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                                <button type="button" class="btn btn-outline-secondary password-toggle" onclick="togglePassword('confirmPassword', this)"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>Register
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center py-3">
+                    <div class="small">
+                        Already have an account? 
+                        <a href="{{ url_for('login') }}" class="text-primary">Login here</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block intl_tel_input_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.card-header {
+    border-bottom: none;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-right: none;
+}
+
+.form-control {
+    border-left: none;
+}
+
+.form-control:focus {
+    box-shadow: none;
+    border-color: #ced4da;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+    padding: 0.8rem;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004494 100%);
+}
+
+/* Custom styles for intl-tel-input integration */
+.iti.iti--allow-dropdown {
+    width: 100%; /* Ensure the input takes full width */
+}
+
+.iti__flag-container {
+    height: 100%;
+}
+
+.iti__selected-flag {
+    height: 100%;
+    padding: 10px 10px 10px 18px; /* Adjust padding for flag */
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border: 1px solid #ced4da; /* Match Bootstrap input border */
+    border-right: none;
+}
+
+.iti__country-list {
+    border-radius: 10px; /* Rounded corners for the dropdown list */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.iti__dropdown-content {
+    max-height: 200px; /* Limit height for scrollability */
+    overflow-y: auto;
+}
+
+.iti__input {
+    padding: 12px; /* Match Bootstrap input padding */
+    border-radius: 10px; /* Rounded corners */
+    border: 1px solid #ced4da;
+    border-left: none; /* Remove left border to blend with flag */
+}
+
+.iti__input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: #80bdff;
+}
+
+.password-requirements {
+    display: none;
+}
+
+.password-requirements-list {
+    margin-top: 10px;
+}
+
+.password-requirements-list li {
+    padding: 5px 0;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.password-requirements-list li.valid {
+    color: #28a745;
+    background-color: #d4edda;
+}
+
+.password-requirements-list li.invalid {
+    color: #dc3545;
+    background-color: #f8d7da;
+}
+
+.password-strength-container {
+    display: flex;
+    align-items: center;
+}
+
+.password-strength-label {
+    margin-right: 15px;
+}
+
+.password-strength-bar {
+    flex: 1;
+    height: 10px;
+    background-color: #e9ecef;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.password-strength {
+    height: 100%;
+    background-color: #dc3545;
+    transition: width 0.3s ease;
+}
+
+.password-strength.strength-medium {
+    background-color: #ffc107;
+}
+
+.password-strength.strength-strong {
+    background-color: #28a745;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const phoneInput = window.intlTelInput(document.querySelector("#phone"), {
+            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
+            preferredCountries: ["us", "gb", "ca"],
+            separateDialCode: true,
+            formatOnDisplay: true
+        });
+
+        function togglePassword(inputId, button) {
+            const input = document.getElementById(inputId);
+            const icon = button.querySelector('i');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            } else {
+                input.type = "password";
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            }
+        }
+        window.togglePassword = togglePassword; // Make it globally accessible
+
+        const passwordField = document.getElementById("password");
+        const confirmPasswordField = document.getElementById("confirmPassword");
+
+        function validatePasswords() {
+            if (passwordField.value !== confirmPasswordField.value) {
+                confirmPasswordField.setCustomValidity("Passwords do not match");
+            } else {
+                confirmPasswordField.setCustomValidity("");
+            }
+        }
+
+        passwordField.addEventListener("input", validatePasswords);
+        confirmPasswordField.addEventListener("input", validatePasswords);
+
+        const passwordRequirementsList = document.querySelector('.password-requirements-list');
+        const passwordStrengthBar = document.querySelector('.password-strength-bar');
+        const passwordStrength = document.querySelector('.password-strength');
+
+        passwordField.addEventListener('input', function() {
+            const password = passwordField.value;
+            const requirements = passwordRequirementsList.children;
+
+            // Check each requirement
+            for (let i = 0; i < requirements.length; i++) {
+                const requirement = requirements[i];
+                const requirementText = requirement.getAttribute('data-requirement');
+
+                if (requirementText === 'At least 8 characters') {
+                    if (password.length >= 8) {
+                        requirement.classList.add('valid');
+                        requirement.classList.remove('invalid');
+                    } else {
+                        requirement.classList.add('invalid');
+                        requirement.classList.remove('valid');
+                    }
+                } else if (requirementText === 'One uppercase letter') {
+                    if (/[A-Z]/.test(password)) {
+                        requirement.classList.add('valid');
+                        requirement.classList.remove('invalid');
+                    } else {
+                        requirement.classList.add('invalid');
+                        requirement.classList.remove('valid');
+                    }
+                } else if (requirementText === 'One lowercase letter') {
+                    if (/[a-z]/.test(password)) {
+                        requirement.classList.add('valid');
+                        requirement.classList.remove('invalid');
+                    } else {
+                        requirement.classList.add('invalid');
+                        requirement.classList.remove('valid');
+                    }
+                } else if (requirementText === 'One number') {
+                    if (/\d/.test(password)) {
+                        requirement.classList.add('valid');
+                        requirement.classList.remove('invalid');
+                    } else {
+                        requirement.classList.add('invalid');
+                        requirement.classList.remove('valid');
+                    }
+                } else if (requirementText === 'One special character (!@#$%^&*)') {
+                    if (/[^A-Za-z0-9]/.test(password)) {
+                        requirement.classList.add('valid');
+                        requirement.classList.remove('invalid');
+                    } else {
+                        requirement.classList.add('invalid');
+                        requirement.classList.remove('valid');
+                    }
+                }
+            }
+
+            // Update password strength bar
+            const strength = getPasswordStrength(password);
+            passwordStrength.style.width = `${strength}%`;
+            passwordStrengthBar.style.display = 'block';
+
+            if (strength < 33) {
+                passwordStrength.classList.remove('strength-medium', 'strength-strong');
+            } else if (strength < 66) {
+                passwordStrength.classList.add('strength-medium');
+                passwordStrength.classList.remove('strength-strong');
+            } else {
+                passwordStrength.classList.add('strength-strong');
+                passwordStrength.classList.remove('strength-medium');
+            }
+        });
+
+        function getPasswordStrength(password) {
+            let strength = 0;
+
+            // Check password length
+            if (password.length >= 8) {
+                strength += 33;
+            }
+
+            // Check for uppercase letter
+            if (/[A-Z]/.test(password)) {
+                strength += 33;
+            }
+
+            // Check for lowercase letter
+            if (/[a-z]/.test(password)) {
+                strength += 33;
+            }
+
+            return strength;
+        }
+    });
+</script>
+{% endblock %}
