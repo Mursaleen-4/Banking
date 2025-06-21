@@ -4,3 +4,4 @@ Werkzeug==3.0.1
 gunicorn==21.2.0
 google-cloud-firestore==2.16.0
 google-api-core==2.17.0
+psutil==5.9.5
