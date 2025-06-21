@@ -5,25 +5,113 @@ from firebase_admin import credentials, firestore
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from google.cloud.firestore_v1 import _helpers
+import time
+import logging
+import psutil
 
-# Write the service account key from env variable to a file if it exists
-service_account_json = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
-if service_account_json:
-    with open('serviceAccountKey.json', 'w') as f:
-        f.write(service_account_json)
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Initialize Flask
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
-# Initialize Firebase Admin
-try:
-    cred = credentials.Certificate('serviceAccountKey.json')
-    firebase_admin.initialize_app(cred)
-    db = firestore.client()
-except Exception as e:
-    print("Error initializing Firebase:", e)
-    db = None
+# Global Firebase client
+db = None
+connection_attempts = 0
+max_connection_attempts = 5
+
+def initialize_firebase():
+    """Initialize Firebase with retry logic and better error handling"""
+    global db, connection_attempts
+    max_retries = 3
+    retry_delay = 2
+    
+    if connection_attempts >= max_connection_attempts:
+        logger.critical("Maximum connection attempts reached")
+        return False
+    
+    connection_attempts += 1
+    
+    for attempt in range(max_retries):
+        try:
+            if not firebase_admin._apps:
+                cred = credentials.Certificate('serviceAccountKey.json')
+                firebase_admin.initialize_app(cred)
+            
+            db = firestore.client()
+            # Test the connection
+            db.collection('users').limit(1).stream()
+            logger.info("Firebase initialized successfully")
+            connection_attempts = 0  # Reset on success
+            return True
+                
+        except Exception as e:
+            logger.error(f"Firebase initialization attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                retry_delay *= 2
+            else:
+                logger.critical("Failed to initialize Firebase after all retries")
+                return False
+
+def get_db():
+    """Get Firebase client with connection check"""
+    global db
+    if db is None:
+        if not initialize_firebase():
+            raise Exception("Firebase not available")
+    return db
+
+def retry_firebase_operation(max_retries=3, delay=1):
+    """Decorator to retry Firebase operations"""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            last_exception = None
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    logger.warning(f"Firebase operation attempt {attempt + 1} failed: {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(delay * (2 ** attempt))  # Exponential backoff
+                        # Reinitialize Firebase connection
+                        global db
+                        db = None
+                        try:
+                            get_db()
+                        except:
+                            pass
+            raise last_exception
+        return wrapper
+    return decorator
+
+# Initialize Firebase on startup
+initialize_firebase()
+
+# Health check endpoint
+@app.route('/health')
+def health_check():
+    try:
+        db = get_db()
+        # Simple test query
+        db.collection('users').limit(1).stream()
+        
+        # Memory usage
+        process = psutil.Process()
+        memory_info = process.memory_info()
+        
+        return jsonify({
+            'status': 'healthy', 
+            'firebase': 'connected',
+            'memory_mb': round(memory_info.rss / 1024 / 1024, 2),
+            'cpu_percent': process.cpu_percent()
+        }), 200
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return jsonify({'status': 'unhealthy', 'firebase': 'disconnected', 'error': str(e)}), 503
 
 # Favicon route
 @app.route('/favicon.ico')
@@ -36,6 +124,7 @@ def index():
 
 # Registration
 @app.route('/register', methods=['GET', 'POST'])
+@retry_firebase_operation(max_retries=3, delay=1)
 def register():
     if request.method == 'POST':
         try:
@@ -44,6 +133,7 @@ def register():
             password = request.form['password']
             hashed_password = generate_password_hash(password)
 
+            db = get_db()
             user_ref = db.collection('users').document(email)
             user = user_ref.get()
 
@@ -61,7 +151,7 @@ def register():
             flash('Registration successful. Please login.', 'success')
             return redirect(url_for('login'))
         except Exception as e:
-            print("Registration error:", e)
+            logger.error(f"Registration error: {e}")
             flash('Registration failed. Please try again.', 'danger')
             return redirect(url_for('register'))
 
@@ -69,12 +159,14 @@ def register():
 
 # Login
 @app.route('/login', methods=['GET', 'POST'])
+@retry_firebase_operation(max_retries=3, delay=1)
 def login():
     if request.method == 'POST':
         try:
             email = request.form['email'].lower()
             password = request.form['password']
 
+            db = get_db()
             user_ref = db.collection('users').document(email)
             user_doc = user_ref.get()
 
@@ -89,7 +181,7 @@ def login():
             else:
                 flash('Email not found. Please register.', 'warning')
         except Exception as e:
-            print("Login error:", e)
+            logger.error(f"Login error: {e}")
             flash('Login failed. Please try again.', 'danger')
             return redirect(url_for('login'))
     return render_template('login.html')
@@ -101,6 +193,7 @@ def dashboard():
         return redirect(url_for('login'))
     try:
         email = session['email']
+        db = get_db()
         user_ref = db.collection('users').document(email)
         user_doc = user_ref.get()
 
@@ -133,7 +226,7 @@ def dashboard():
             flash('User data not found.', 'danger')
             return redirect(url_for('login'))
     except Exception as e:
-        print("Dashboard error:", e)
+        logger.error(f"Dashboard error: {e}")
         flash('Error loading dashboard.', 'danger')
         return redirect(url_for('login'))
 
@@ -147,6 +240,7 @@ def deposit():
         try:
             amount = float(request.form['amount'])
             email = session['email']
+            db = get_db()
             user_ref = db.collection('users').document(email)
             user_doc = user_ref.get()
 
@@ -166,7 +260,7 @@ def deposit():
                 flash(f'Deposited ${amount:.2f} successfully.', 'success')
                 return redirect(url_for('dashboard'))
         except Exception as e:
-            print("Deposit error:", e)
+            logger.error(f"Deposit error: {e}")
             flash('Deposit failed. Please try again.', 'danger')
             return redirect(url_for('deposit'))
     return render_template('deposit.html')
@@ -181,6 +275,7 @@ def withdraw():
         try:
             amount = float(request.form['amount'])
             email = session['email']
+            db = get_db()
             user_ref = db.collection('users').document(email)
             user_doc = user_ref.get()
 
@@ -203,7 +298,7 @@ def withdraw():
                     flash('Insufficient balance.', 'danger')
                 return redirect(url_for('dashboard'))
         except Exception as e:
-            print("Withdraw error:", e)
+            logger.error(f"Withdraw error: {e}")
             flash('Withdrawal failed. Please try again.', 'danger')
             return redirect(url_for('withdraw'))
     return render_template('withdraw.html')
@@ -220,6 +315,7 @@ def transfer():
             amount = float(request.form['amount'])
             sender_email = session['email']
 
+            db = get_db()
             sender_ref = db.collection('users').document(sender_email)
             recipient_ref = db.collection('users').document(recipient_email)
             sender_doc = sender_ref.get()
@@ -257,7 +353,7 @@ def transfer():
                     flash('Insufficient balance.', 'danger')
                 return redirect(url_for('dashboard'))
         except Exception as e:
-            print("Transfer error:", e)
+            logger.error(f"Transfer error: {e}")
             flash('Transfer failed. Please try again.', 'danger')
             return redirect(url_for('transfer'))
     return render_template('transfer.html')
@@ -270,6 +366,7 @@ def history():
 
     try:
         email = session['email'].lower()
+        db = get_db()
         transactions_ref = db.collection('transaction').where('email', '==', email).order_by('timestamp', direction=firestore.Query.DESCENDING)
         transactions = []
         for txn_doc in transactions_ref.stream():
@@ -285,7 +382,7 @@ def history():
             })
         return render_template('history.html', transactions=transactions)
     except Exception as e:
-        print("History error:", e)
+        logger.error(f"History error: {e}")
         flash('Failed to load transaction history.', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -297,6 +394,7 @@ def load_more_transactions():
     try:
         email = session['email']
         last_doc_id = request.args.get('last_doc_id')
+        db = get_db()
         transactions_ref = db.collection('transaction').where('email', '==', email).order_by('timestamp', direction=firestore.Query.DESCENDING).limit(2)
         if last_doc_id:
             # Get the last doc snapshot
@@ -332,7 +430,7 @@ def load_more_transactions():
         has_more = len(docs) == 2
         return jsonify({'transactions': transactions, 'has_more': has_more, 'last_doc_id': new_last_doc_id})
     except Exception as e:
-        print('Load more transactions error:', e)
+        logger.error(f'Load more transactions error: {e}')
         return jsonify({'transactions': [], 'has_more': False, 'last_doc_id': None})
 
 # Logout
@@ -346,6 +444,21 @@ def logout():
 @app.after_request
 def clear_flashes(response):
     session.pop('_flashes', None)
+    return response
+
+# Request monitoring
+@app.before_request
+def before_request():
+    request.start_time = time.time()
+
+@app.after_request
+def after_request(response):
+    if hasattr(request, 'start_time'):
+        duration = time.time() - request.start_time
+        if duration > 5:  # Log slow requests
+            process = psutil.Process()
+            memory_mb = round(process.memory_info().rss / 1024 / 1024, 2)
+            logger.warning(f"Slow request: {request.endpoint} took {duration:.2f}s, memory: {memory_mb}MB")
     return response
 
 # 404 error handler
