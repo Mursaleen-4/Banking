@@ -6,6 +6,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from google.cloud.firestore_v1 import _helpers
 
+# Write the service account key from env variable to a file if it exists
+service_account_json = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+if service_account_json:
+    with open('serviceAccountKey.json', 'w') as f:
+        f.write(service_account_json)
+
 # Initialize Flask
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
