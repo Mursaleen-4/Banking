@@ -18,7 +18,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="#">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
                 <div class="brand-container">
                     <div class="brand-icon">
                         <i class="fas fa-university"></i>
@@ -35,25 +35,29 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="index.html">
+                        {% if request.endpoint == 'index' %}
+                            <a class="nav-link" href="#hero">
+                        {% else %}
+                            <a class="nav-link" href="{{ url_for('index') }}">
+                        {% endif %}
                             <i class="fas fa-home me-1"></i>
                             <span>Home</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#services">
+                        <a class="nav-link" href="{{ url_for('index') }}#services">
                             <i class="fas fa-cogs me-1"></i>
                             <span>Services</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#about">
+                        <a class="nav-link" href="{{ url_for('index') }}#about">
                             <i class="fas fa-info-circle me-1"></i>
                             <span>About Us</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#contact">
+                        <a class="nav-link" href="{{ url_for('index') }}#contact">
                             <i class="fas fa-envelope me-1"></i>
                             <span>Contact</span>
                         </a>
