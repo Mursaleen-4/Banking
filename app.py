@@ -8,6 +8,7 @@ from google.cloud.firestore_v1 import _helpers
 import time
 import logging
 import psutil
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -34,27 +35,55 @@ def initialize_firebase():
     
     connection_attempts += 1
     
-    for attempt in range(max_retries):
+    # Check for environment variable first (production)
+    firebase_key_env = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
+    if firebase_key_env:
         try:
+            import base64
+            # Decode base64 encoded credentials
+            creds_json = base64.b64decode(firebase_key_env).decode('utf-8')
+            creds_dict = json.loads(creds_json)
+            
             if not firebase_admin._apps:
-                cred = credentials.Certificate('serviceAccountKey.json')
+                cred = credentials.Certificate(creds_dict)
                 firebase_admin.initialize_app(cred)
             
             db = firestore.client()
             # Test the connection
             db.collection('users').limit(1).stream()
-            logger.info("Firebase initialized successfully")
+            logger.info("Firebase initialized successfully from environment variable")
             connection_attempts = 0  # Reset on success
             return True
-                
         except Exception as e:
-            logger.error(f"Firebase initialization attempt {attempt + 1} failed: {e}")
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                retry_delay *= 2
-            else:
-                logger.critical("Failed to initialize Firebase after all retries")
-                return False
+            logger.error(f"Failed to initialize Firebase from environment variable: {e}")
+    
+    # Check if service account key file exists (development)
+    if os.path.exists('serviceAccountKey.json'):
+        for attempt in range(max_retries):
+            try:
+                if not firebase_admin._apps:
+                    cred = credentials.Certificate('serviceAccountKey.json')
+                    firebase_admin.initialize_app(cred)
+                
+                db = firestore.client()
+                # Test the connection
+                db.collection('users').limit(1).stream()
+                logger.info("Firebase initialized successfully from file")
+                connection_attempts = 0  # Reset on success
+                return True
+                    
+            except Exception as e:
+                logger.error(f"Firebase initialization attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    retry_delay *= 2
+                else:
+                    logger.critical("Failed to initialize Firebase after all retries")
+                    return False
+    else:
+        logger.error("serviceAccountKey.json not found and FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set.")
+        logger.error("Please ensure the file exists in the project root or set the environment variable.")
+        return False
 
 def get_db():
     """Get Firebase client with connection check"""
@@ -64,29 +93,25 @@ def get_db():
             raise Exception("Firebase not available")
     return db
 
-def retry_firebase_operation(max_retries=3, delay=1):
-    """Decorator to retry Firebase operations"""
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            last_exception = None
-            for attempt in range(max_retries):
+def retry_firebase_operation(operation_func, max_retries=3, delay=1):
+    """Helper function to retry Firebase operations"""
+    last_exception = None
+    for attempt in range(max_retries):
+        try:
+            return operation_func()
+        except Exception as e:
+            last_exception = e
+            logger.warning(f"Firebase operation attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(delay * (2 ** attempt))  # Exponential backoff
+                # Reinitialize Firebase connection
+                global db
+                db = None
                 try:
-                    return func(*args, **kwargs)
-                except Exception as e:
-                    last_exception = e
-                    logger.warning(f"Firebase operation attempt {attempt + 1} failed: {e}")
-                    if attempt < max_retries - 1:
-                        time.sleep(delay * (2 ** attempt))  # Exponential backoff
-                        # Reinitialize Firebase connection
-                        global db
-                        db = None
-                        try:
-                            get_db()
-                        except:
-                            pass
-            raise last_exception
-        return wrapper
-    return decorator
+                    get_db()
+                except:
+                    pass
+    raise last_exception
 
 # Initialize Firebase on startup
 initialize_firebase()
@@ -124,7 +149,6 @@ def index():
 
 # Registration
 @app.route('/register', methods=['GET', 'POST'])
-@retry_firebase_operation(max_retries=3, delay=1)
 def register():
     if request.method == 'POST':
         try:
@@ -133,23 +157,26 @@ def register():
             password = request.form['password']
             hashed_password = generate_password_hash(password)
 
-            db = get_db()
-            user_ref = db.collection('users').document(email)
-            user = user_ref.get()
+            def register_operation():
+                db = get_db()
+                user_ref = db.collection('users').document(email)
+                user = user_ref.get()
 
-            if user.exists:
-                flash('Email already registered. Please login.', 'warning')
+                if user.exists:
+                    flash('Email already registered. Please login.', 'warning')
+                    return redirect(url_for('login'))
+
+                user_ref.set({
+                    'name': name,
+                    'email': email,
+                    'password': hashed_password,
+                    'balance': 0.0
+                })
+
+                flash('Registration successful. Please login.', 'success')
                 return redirect(url_for('login'))
 
-            user_ref.set({
-                'name': name,
-                'email': email,
-                'password': hashed_password,
-                'balance': 0.0
-            })
-
-            flash('Registration successful. Please login.', 'success')
-            return redirect(url_for('login'))
+            return retry_firebase_operation(register_operation)
         except Exception as e:
             logger.error(f"Registration error: {e}")
             flash('Registration failed. Please try again.', 'danger')
@@ -159,27 +186,32 @@ def register():
 
 # Login
 @app.route('/login', methods=['GET', 'POST'])
-@retry_firebase_operation(max_retries=3, delay=1)
 def login():
     if request.method == 'POST':
         try:
             email = request.form['email'].lower()
             password = request.form['password']
 
-            db = get_db()
-            user_ref = db.collection('users').document(email)
-            user_doc = user_ref.get()
+            def login_operation():
+                db = get_db()
+                user_ref = db.collection('users').document(email)
+                user_doc = user_ref.get()
 
-            if user_doc.exists:
-                user_data = user_doc.to_dict()
-                if check_password_hash(user_data['password'], password):
-                    session['email'] = email
-                    flash('Login successful!', 'success')
-                    return redirect(url_for('dashboard'))
+                if user_doc.exists:
+                    user_data = user_doc.to_dict()
+                    if check_password_hash(user_data['password'], password):
+                        session['email'] = email
+                        flash('Login successful!', 'success')
+                        return redirect(url_for('dashboard'))
+                    else:
+                        flash('Incorrect password.', 'danger')
                 else:
-                    flash('Incorrect password.', 'danger')
-            else:
-                flash('Email not found. Please register.', 'warning')
+                    flash('Email not found. Please register.', 'warning')
+                return None
+
+            result = retry_firebase_operation(login_operation)
+            if result:
+                return result
         except Exception as e:
             logger.error(f"Login error: {e}")
             flash('Login failed. Please try again.', 'danger')
