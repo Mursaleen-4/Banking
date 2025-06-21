@@ -17,15 +17,18 @@ body {
 
 /* Hero Section */
 .hero-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding-top: 0; /* Remove extra space at the top */
+    margin-bottom: 5rem;
     position: relative;
-    overflow: hidden;
     background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('https://images.unsplash.com/photo-1563986768609-322da13575f3?ixlib=rb-4.0.3');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
-    min-height: 100vh;
-    padding-top: 80px;
-    margin-bottom: 5rem; /* Adjust spacing as needed */
 }
 
 .hero-overlay {
@@ -33,10 +36,15 @@ body {
 }
 
 .hero-content {
-    position: relative;
-    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
     color: white;
-    padding-top: 2rem; /* Additional padding to ensure text is visible */
+    padding-top: 0;
+    text-align: center;
 }
 
 .hero-content h1 {
@@ -1354,3 +1362,246 @@ section::after {
     padding: 2rem 0; /* Reduce padding to make the section shorter */
 }
 
+/* --- Template Inline Styles Consolidation --- */
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+}
+.card-header {
+    border-bottom: none;
+}
+.input-group-text {
+    background-color: #f8f9fa;
+    border-right: none;
+}
+.form-control {
+    border-left: none;
+}
+.form-control:focus {
+    box-shadow: none;
+    border-color: #ced4da;
+}
+.btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+    padding: 0.8rem;
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004494 100%);
+}
+.btn-outline-secondary {
+    border-width: 2px;
+    font-weight: 500;
+}
+.password-requirements {
+    display: none;
+}
+.password-requirements-list {
+    margin-top: 10px;
+}
+.password-requirements-list li {
+    padding: 5px 0;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+.password-requirements-list li.valid {
+    color: #28a745;
+    background-color: #d4edda;
+}
+.password-requirements-list li.invalid {
+    color: #dc3545;
+    background-color: #f8d7da;
+}
+.password-strength-container {
+    display: flex;
+    align-items: center;
+}
+.password-strength-label {
+    margin-right: 15px;
+}
+.password-strength-bar {
+    flex: 1;
+    height: 10px;
+    background-color: #e9ecef;
+    border-radius: 5px;
+    overflow: hidden;
+}
+.password-strength {
+    height: 100%;
+    background-color: #dc3545;
+    transition: width 0.3s ease;
+}
+.password-strength.strength-medium {
+    background-color: #ffc107;
+}
+.password-strength.strength-strong {
+    background-color: #28a745;
+}
+
+/* --- Dashboard Quick Actions --- */
+.action-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    border: none;
+    transition: box-shadow 0.3s;
+}
+.action-card:hover {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+.action-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+.action-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+    transition: background 0.2s;
+    text-decoration: none;
+    color: #222;
+    font-weight: 500;
+}
+.action-item:hover {
+    background: #f5f8ff;
+    color: #0056b3;
+}
+.action-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+}
+.action-info span {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+.action-info small {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+/* --- Dashboard Recent Transactions --- */
+.transaction-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    border: none;
+    transition: box-shadow 0.3s;
+}
+.transaction-card:hover {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+.transaction-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+.transaction-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 0.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s;
+    border-radius: 8px;
+}
+.transaction-item:last-child {
+    border-bottom: none;
+}
+.transaction-icon {
+    margin-right: 1rem;
+}
+.transaction-type.success {
+    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+    color: #fff;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+.transaction-type.danger {
+    background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);
+    color: #fff;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+.transaction-details {
+    flex: 1;
+    min-width: 0;
+}
+.transaction-info h6 {
+    margin-bottom: 0.2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.transaction-info small {
+    color: #888;
+}
+.transaction-status {
+    margin-left: 1rem;
+}
+.transaction-amount {
+    text-align: right;
+}
+.amount-container {
+    display: flex;
+    align-items: baseline;
+    gap: 0.2rem;
+}
+.currency {
+    font-size: 0.95rem;
+    color: #888;
+}
+.amount.text-success {
+    color: #28a745 !important;
+    font-weight: 700;
+}
+.amount.text-danger {
+    color: #dc3545 !important;
+    font-weight: 700;
+}
+.transaction-category .badge {
+    font-size: 0.8rem;
+    background: #e9ecef;
+    color: #555;
+    margin-top: 0.2rem;
+}
+.empty-state {
+    padding: 2rem 0;
+}
+.empty-icon {
+    margin-bottom: 1rem;
+}
+.empty-content h5 {
+    color: #888;
+    font-weight: 600;
+}
+.empty-content p {
+    color: #bbb;
+}
+.empty-actions .btn {
+    margin-top: 1rem;
+}
