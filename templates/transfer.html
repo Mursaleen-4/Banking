@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">
@@ -11,12 +10,12 @@
                 <div class="card-body p-4">
                     <form method="POST" action="{{ url_for('transfer') }}">
                         <div class="mb-4">
-                            <label for="target_uid" class="form-label">Recipient's User ID</label>
+                            <label for="recipient" class="form-label">Recipient's Email</label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                <input type="text" class="form-control" id="target_uid" name="target_uid" required>
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" class="form-control" id="recipient" name="recipient" required>
                             </div>
-                            <div class="form-text">Enter the User ID of the person you want to transfer money to.</div>
+                            <div class="form-text">Enter the email of the person you want to transfer money to.</div>
                         </div>
                         <div class="mb-4">
                             <label for="amount" class="form-label">Amount to Transfer</label>
@@ -42,6 +41,7 @@
     </div>
 </div>
 {% endblock %}
+
 
 {% block extra_css %}
 <style>
