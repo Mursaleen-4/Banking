@@ -31,7 +31,7 @@ Bank Project
 
 ## Security Features
 
-- **Firebase Authentication**: Secure user authentication and session management
+- **MongoDB Authentication**: Secure user authentication and session management
 - **Password Hashing**: Passwords are hashed using Werkzeug's security functions
 - **Input Validation**: All user inputs are validated and sanitized
 - **Session Management**: Secure session handling with Flask sessions
