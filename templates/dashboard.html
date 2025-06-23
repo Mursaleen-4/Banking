@@ -104,7 +104,7 @@
                     </div>
                     <div class="card-body">
                         {% if recent_transactions %}
-                            <div class="transaction-list">
+                            <div class="transaction-list" id="transaction-list">
                                 {% for transaction in recent_transactions %}
                                     <div class="transaction-item" data-type="{{ transaction.type }}" data-timestamp="{{ transaction.timestamp.timestamp() if transaction.timestamp else '' }}">
                                         <div class="transaction-icon">
@@ -115,12 +115,13 @@
                                         <div class="transaction-details">
                                             <div class="transaction-info">
                                                 <h6 class="mb-1">{{ transaction.description }}</h6>
-                                                <small class="text-muted">{{ transaction.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                                                <small class="text-muted">{{ transaction.timestamp.strftime('%Y-%m-%d %H:%M') if transaction.timestamp else '' }}</small>
+                                                {% if transaction.recipient_email != '-' %}
+                                                    <div class="text-muted small">Recipient: {{ transaction.recipient_email }}</div>
+                                                {% endif %}
                                             </div>
                                             <div class="transaction-status">
-                                                <span class="badge {% if transaction.status == 'completed' %}bg-success{% elif transaction.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
-                                                    {{ transaction.status.title() }}
-                                                </span>
+                                                <span class="badge bg-success">{{ transaction.status.title() }}</span>
                                             </div>
                                         </div>
                                         <div class="transaction-amount">
@@ -131,15 +132,18 @@
                                                 </span>
                                             </div>
                                             <div class="transaction-category">
-                                                <span class="badge bg-secondary">{{ transaction.category }}</span>
+                                                <span class="badge bg-secondary">{{ transaction.type }}</span>
                                             </div>
                                         </div>
                                     </div>
                                 {% endfor %}
                             </div>
                             <div class="text-center mt-3">
-                                <button class="btn btn-outline-primary btn-sm" id="loadMoreTransactions" data-loaded="{{ recent_transactions|length }}" data-last-doc-id="{{ last_doc_id }}">
+                                <button class="btn btn-outline-primary btn-sm" id="loadMoreTransactions" data-loaded="1">
                                     <i class="fas fa-chevron-down me-2"></i>Load More
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" id="loadLessTransactions" style="display:none;">
+                                    <i class="fas fa-chevron-up me-2"></i>Load Less
                                 </button>
                             </div>
                         {% else %}
@@ -181,4 +185,125 @@
         </div>
     </div>
 </div>
+
+<script>
+// Load more transactions
+function getLoadedCount() {
+    return document.querySelectorAll('#transaction-list .transaction-item').length;
+}
+document.getElementById('loadMoreTransactions').addEventListener('click', function() {
+    const loaded = getLoadedCount();
+    fetch(`/load_more_transactions?skip=${loaded}&limit=5`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.transactions && data.transactions.length > 0) {
+                const list = document.getElementById('transaction-list');
+                data.transactions.forEach(function(transaction) {
+                    const div = document.createElement('div');
+                    div.className = 'transaction-item';
+                    div.innerHTML = `
+                        <div class=\"transaction-icon\">
+                            <div class=\"transaction-type ${['deposit','transfer_received'].includes(transaction.type) ? 'success' : 'danger'}\">
+                                <i class=\"fas ${['deposit','transfer_received'].includes(transaction.type) ? 'fa-arrow-up' : 'fa-arrow-down'}\"></i>
+                            </div>
+                        </div>
+                        <div class=\"transaction-details\">
+                            <div class=\"transaction-info\">
+                                <h6 class=\"mb-1\">${transaction.description}</h6>
+                                <small class=\"text-muted\">${transaction.timestamp ? new Date(transaction.timestamp).toLocaleString() : ''}</small>
+                                ${transaction.recipient_email !== '-' ? `<div class=\"text-muted small\">Recipient: ${transaction.recipient_email}</div>` : ''}
+                            </div>
+                            <div class=\"transaction-status\">
+                                <span class=\"badge bg-success\">${transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}</span>
+                            </div>
+                        </div>
+                        <div class=\"transaction-amount\">
+                            <div class=\"amount-container\">
+                                <span class=\"currency\">$</span>
+                                <span class=\"amount ${['deposit','transfer_received'].includes(transaction.type) ? 'text-success' : 'text-danger'}\">
+                                    ${transaction.amount.toFixed(2)}
+                                </span>
+                            </div>
+                            <div class=\"transaction-category\">
+                                <span class=\"badge bg-secondary\">${transaction.type}</span>
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+                // Show Load Less button if more than 1 transaction is loaded
+                if (getLoadedCount() > 1) {
+                    document.getElementById('loadLessTransactions').style.display = '';
+                }
+            }
+            if (!data.has_more) {
+                document.getElementById('loadMoreTransactions').style.display = 'none';
+            } else {
+                document.getElementById('loadMoreTransactions').style.display = '';
+            }
+        })
+        .catch(function(error) {
+            alert('Failed to load more transactions. Please try again.');
+            console.error(error);
+        });
+});
+// Load less transactions
+function showOnlyLatestTransaction() {
+    const list = document.getElementById('transaction-list');
+    const items = list.querySelectorAll('.transaction-item');
+    // Remove all but the first transaction item
+    for (let i = 1; i < items.length; i++) {
+        items[i].remove();
+    }
+    document.getElementById('loadMoreTransactions').style.display = '';
+    document.getElementById('loadLessTransactions').style.display = 'none';
+}
+document.getElementById('loadLessTransactions').addEventListener('click', showOnlyLatestTransaction);
+// Refresh transactions
+function refreshTransactions() {
+    fetch('/refresh_transactions')
+        .then(response => response.json())
+        .then(data => {
+            if (data.transactions && data.transactions.length > 0) {
+                const list = document.getElementById('transaction-list');
+                list.innerHTML = '';
+                data.transactions.forEach(function(transaction) {
+                    const div = document.createElement('div');
+                    div.className = 'transaction-item';
+                    div.innerHTML = `
+                        <div class=\"transaction-icon\">
+                            <div class=\"transaction-type ${['deposit','transfer_received'].includes(transaction.type) ? 'success' : 'danger'}\">
+                                <i class=\"fas ${['deposit','transfer_received'].includes(transaction.type) ? 'fa-arrow-up' : 'fa-arrow-down'}\"></i>
+                            </div>
+                        </div>
+                        <div class=\"transaction-details\">
+                            <div class=\"transaction-info\">
+                                <h6 class=\"mb-1\">${transaction.description}</h6>
+                                <small class=\"text-muted\">${transaction.timestamp ? new Date(transaction.timestamp).toLocaleString() : ''}</small>
+                                ${transaction.recipient_email !== '-' ? `<div class=\"text-muted small\">Recipient: ${transaction.recipient_email}</div>` : ''}
+                            </div>
+                            <div class=\"transaction-status\">
+                                <span class=\"badge bg-success\">${transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}</span>
+                            </div>
+                        </div>
+                        <div class=\"transaction-amount\">
+                            <div class=\"amount-container\">
+                                <span class=\"currency\">$</span>
+                                <span class=\"amount ${['deposit','transfer_received'].includes(transaction.type) ? 'text-success' : 'text-danger'}\">
+                                    ${transaction.amount.toFixed(2)}
+                                </span>
+                            </div>
+                            <div class=\"transaction-category\">
+                                <span class=\"badge bg-secondary\">${transaction.type}</span>
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+                document.getElementById('loadMoreTransactions').style.display = '';
+            }
+        });
+}
+document.querySelector('.header-actions button').addEventListener('click', refreshTransactions);
+</script>
 {% endblock %}
