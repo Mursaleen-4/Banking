@@ -61,19 +61,10 @@ python app.py
 
 ```
 
-### 5. Access the Application
-Open your browser and go to `http://127.0.0.1:5000`
-
-## Deployment
-
-### Heroku Deployment
-1. Create a Heroku app
-2. Set up Firebase credentials as environment variables
-3. Deploy using the provided Procfile and gunicorn configuration
 
 ### Environment Variables
 For production deployment, set these environment variables:
-- `FIREBASE_SERVICE_ACCOUNT_KEY`: Your Firebase service account JSON (base64 encoded)
+- `MONGO_URI`: Your Mongo dtabase connect string 
 
 ## Features
 
