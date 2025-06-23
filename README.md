@@ -7,14 +7,8 @@ This is a secure Flask web application for managing bank accounts. Users can reg
 ```
 Bank Project
 ├── app.py                    # Main Flask application with Firebase integration
-├── serviceAccountKey.json    # Firebase credentials (DO NOT COMMIT TO GIT)
-├── serviceAccountKey.example.json # Example Firebase credentials template
 ├── requirements.txt          # Python dependencies
-├── Procfile                 # Heroku deployment configuration
-├── gunicorn.conf.py         # Gunicorn server configuration
-├── start.sh                 # Deployment startup script
 ├── .gitignore               # Git ignore rules for security
-├── DEPLOYMENT.md            # Deployment and troubleshooting guide
 ├── templates/               # HTML templates
 │   ├── base.html           # Base template with navigation
 │   ├── index.html          # Landing page
@@ -53,7 +47,7 @@ Bank Project
 ### 1. Clone the Repository
 ```bash
 git clone <repository-url>
-cd bank-project
+cd banking
 ```
 
 ### 2. Install Dependencies
@@ -61,16 +55,10 @@ cd bank-project
 pip install -r requirements.txt
 ```
 
-### 3. Firebase Setup
-1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable Firestore database
-3. Create a service account and download the JSON key file
-4. Rename the downloaded file to `serviceAccountKey.json`
-5. Place it in the project root directory
-
 ### 4. Run the Application
 ```bash
 # Development mode
+$env:MONGODB_URI="mongodb://localhost:27017/bankdb"
 python app.py
 
 # Production mode (using Gunicorn)
@@ -103,12 +91,6 @@ For production deployment, set these environment variables:
 
 ## Security Considerations
 
-### ⚠️ IMPORTANT: Firebase Credentials
-- **NEVER commit `serviceAccountKey.json` to version control**
-- The `.gitignore` file is configured to exclude this file
-- Use environment variables in production
-- Keep your Firebase credentials secure
-
 ### Data Protection
 - All passwords are hashed using bcrypt
 - User sessions are managed securely
@@ -121,15 +103,6 @@ The application includes monitoring features:
 - **Health Check Endpoint**: `/health` - Check application status and Firebase connectivity
 - **Memory Monitoring**: Tracks memory usage and CPU utilization
 - **Request Logging**: Logs slow requests and errors
-- **Firebase Connection Monitoring**: Automatic retry logic for connection issues
-
-## Troubleshooting
-
-See `DEPLOYMENT.md` for detailed troubleshooting guide, including:
-- Worker timeout issues
-- Memory problems
-- Firebase connection errors
-- Performance optimization tips
 
 ## Contributing
 
