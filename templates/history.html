@@ -27,7 +27,7 @@
                                         <td>{{ txn.timestamp }}</td>
                                         <td>{{ txn.type.capitalize() }}</td>
                                         <td>${{ "%.2f"|format(txn.amount) }}</td>
-                                        <td>{{ txn.recipient_email if txn.type == 'transfer' else '-' }}</td>
+                                        <td>{{ txn.recipient_email }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
