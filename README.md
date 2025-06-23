@@ -40,9 +40,7 @@ Bank Project
 ## Setup Instructions
 
 ### Prerequisites
-- Python 3.7 or higher
-- Firebase project with Firestore database
-- Firebase service account credentials
+- Python 3.12 or higher
 
 ### 1. Clone the Repository
 ```bash
@@ -61,8 +59,6 @@ pip install -r requirements.txt
 $env:MONGODB_URI="mongodb://localhost:27017/bankdb"
 python app.py
 
-# Production mode (using Gunicorn)
-gunicorn app:app -c gunicorn.conf.py
 ```
 
 ### 5. Access the Application
